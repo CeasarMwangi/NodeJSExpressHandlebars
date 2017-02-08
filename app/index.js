@@ -181,6 +181,7 @@ app.use((err, request, response, next) => {
 app.listen(3000) 
 */
 /*------------Express Using Handlebars for HTML views------*/
+/*
 const path = require('path')  
 const express = require('express')  
 // https://www.npmjs.com/package/express-handlebars
@@ -202,4 +203,114 @@ app.get('/products', (request, response) => {
     products: ['Apple Pie', 'Pizza', 'Humbergur']
   })
 })
+app.listen(3000)
+*/
+
+/*------Storing data in a global variable----*/
+/*
+const express = require('express')  
+const app = express()
+const users = []
+// define middleware - using app.use
+app.use((request, response, next) => { 
+  request.body = {name: 'Kanja', age: 25};
+  next()
+})
+
+app.get('/users', function (req, res) {  
+    // retrieve user posted data from the body
+    const user = req.body
+    users.push({
+      name: user.name,
+      age: user.age
+    })
+    res.send('successfully registered')
+})
+app.listen(3000)
+*/
+
+/*------Storing data in a file----*/
+/*
+const fs = require('fs')
+const express = require('express')  
+const app = express()
+
+// define middleware - using app.use
+app.use((request, response, next) => { 
+  request.body = {name: 'Kanja', age: 25};
+  next()
+})
+
+app.get('/users', function (req, res) {  
+    const user = req.body
+    fs.appendFile('./app/users.txt', JSON.stringify({ name: user.name, age: user.age }), (err) => {
+        res.send('successfully registered')
+    })
+})
+app.listen(3000)
+*/
+
+/*-----NodeJS and Postgress Database----*/
+'use strict'
+const express = require('express')  
+const app = express()
+
+const pg = require('pg')  
+// make sure to match your own database's credentials
+const conString = 'postgres://postgres:QDckmA2016)@localhost/node_hero' 
+pg.connect(conString, function (err, client, done) {  
+  if (err) {
+    return console.error('error fetching client from pool', err)
+  }
+  // client.query('SELECT $1::varchar AS my_first_query', ['node hero'], function (err, result) {
+  //   done()
+
+  //   if (err) {
+  //     return console.error('error happened during query', err)
+  //   }
+  //   console.log(result.rows[0])
+  //   process.exit(0)
+  // })
+})
+
+app.post('/users', function (req, res, next) {  
+  const user = req.body
+
+  pg.connect(conString, function (err, client, done) {
+    if (err) {
+      // pass the error to the express error handler
+      return next(err)
+    }
+    client.query('INSERT INTO users (name, age) VALUES ($1, $2);', ['user.name', 26], function (err, result) {
+      done() //this done callback signals the pg driver that the connection can be closed or returned to the connection pool
+
+      if (err) {
+        // pass the error to the express error handler
+        return next(err)
+      }
+
+      res.sendStatus(200)
+    })
+  })
+})
+
+app.get('/users', function (req, res, next) {  
+  pg.connect(conString, function (err, client, done) {
+    if (err) {
+      // pass the error to the express error handler
+      return next(err)
+    }
+    client.query('SELECT name, age FROM users;', [], function (err, result) {
+      done()
+
+      if (err) {
+        // pass the error to the express error handler
+        return next(err)
+      }
+
+      res.json(result.rows)
+    })
+  })
+})
+
 app.listen(3000)
